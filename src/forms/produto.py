@@ -1,6 +1,7 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed
 
+from wtforms.fields.choices import SelectField
 from wtforms.fields.numeric import DecimalField, IntegerField
 from wtforms.fields.simple import StringField, BooleanField, FileField, SubmitField
 from wtforms.validators import InputRequired, Length, NumberRange
@@ -19,7 +20,6 @@ class ProdutoForm(FlaskForm):
 
     foto = FileField(label='Foto do Produto', validators=[FileAllowed(['jpg', 'png'], message="Apenas arquivos JPG ou PNG")])
 
-    categoria = StringField(label="Adicionar produto",
-                            validators=[InputRequired(message="Selecione uma categoria")])
+    categoria = SelectField(label="Categoria do Produto", validators=[InputRequired(message="Selecione uma categoria")])
 
     submit = SubmitField()

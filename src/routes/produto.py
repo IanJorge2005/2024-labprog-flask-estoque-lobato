@@ -1,16 +1,16 @@
 from base64 import b64encode
 
-from flask import Blueprint, flash, redirect, url_for, render_template, request
+from flask import Blueprint, flash, redirect, url_for, render_template, request, Response, abort
 from flask_login import login_required
 
-from forms.produto import ProdutoForm
+from src.forms.produto import ProdutoForm
 from src.models.categoria import Categoria
 from src.models.produto import Produto
-from modules import db
+from src.modules import db
 
 bp = Blueprint('produto', __name__, url_prefix='/produto')
 
-@bp.route('/novo',methods=['GET','POST'])
+@bp.route('/add',methods=['GET','POST'])
 @login_required
 def add():
     if Categoria.is_empty():
@@ -47,3 +47,21 @@ def add():
         return redirect(url_for('index'))
 
     return render_template('produto/add_edit.jinja2', form=form, title="Adicionar novo Produto")
+
+
+@bp.route('/imagem/<uuid:id_produto>', methods=['GET'])
+def imagem(id_produto):
+    produto = Produto.get_by_id(id_produto)
+    if produto is None:
+        return abort(404)
+    conteudo, tipo = produto.imagem
+    return Response(conteudo, mimetype=tipo)
+
+@bp.route('/thumbnail/<uuid:id_produto>/<int:size>', methods=['GET'])
+@bp.route('/thumbnail/<uuid:id_produto>', methods=['GET'])
+def thumbnail(id_produto, size=128):
+    produto = Produto.get_by_id(id_produto)
+    if produto is None:
+        return abort(404)
+    conteudo, tipo = produto.thumbnail(size)
+    return Response(conteudo, mimetype=tipo)
