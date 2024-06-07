@@ -18,8 +18,8 @@ class Produto(db.Model, BasicRepositoryMixin, TimeStampMixin):
     estoque = mapped_column(Integer, default=0)
     ativo = mapped_column(Boolean, default=True, nullable=False)
     possui_foto = mapped_column(Boolean, default=True, nullable=False)
-    foto_base64 = mapped_column(Text, default=None, nullable=False)
-    foto_mime = mapped_column(String(64), nullable=False, default=None)
+    foto_base64 = mapped_column(Text, default=None, nullable=True)
+    foto_mime = mapped_column(String(64), nullable=True, default=None)
     categoria_id = mapped_column(Uuid(as_uuid=True), ForeignKey('categorias.id'))
 
     categoria = relationship('Categoria', back_populates='lista_de_produtos')
@@ -41,7 +41,12 @@ class Produto(db.Model, BasicRepositoryMixin, TimeStampMixin):
 
     def thumbnail(self, size: int = 128):
         if not self.possui_foto:
-            ...
+            saida = io.BytesIO()
+            entrada = Image.new('RGB', (size, size), (128, 128, 128))
+            formato = "PNG"
+            entrada.save(saida, format=formato)
+            conteudo = saida.getvalue()
+            tipo = 'image/png'
         else:
             arquivo = io.BytesIO(b64decode(self.foto_base64))
             saida = io.BytesIO()

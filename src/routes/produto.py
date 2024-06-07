@@ -1,5 +1,7 @@
 from base64 import b64encode
 
+from pprint import pprint
+
 from flask import Blueprint, flash, redirect, url_for, render_template, request, Response, abort
 from flask_login import login_required
 
@@ -10,11 +12,12 @@ from src.modules import db
 
 bp = Blueprint('produto', __name__, url_prefix='/produto')
 
-@bp.route('/add',methods=['GET','POST'])
+
+@bp.route('/add', methods=['GET','POST'])
 @login_required
 def add():
     if Categoria.is_empty():
-        flash("Impossível adicionr produto. Adicione pelo menos uma categoria", category='warning')
+        flash("Impossível adicionar produto. Adicione pelo menos uma categoria", category='warning')
         return redirect(url_for('categoria.add'))
 
     form = ProdutoForm()
@@ -24,10 +27,9 @@ def add():
 
     if form.validate_on_submit():
         produto = Produto(nome = form.nome.data, preco = form.preco.data, ativo = form.ativo.data, estoque = form.estoque.data)
-
         if form.foto.data:
             produto.possui_foto = True
-            produto.foto_base64 = (b64encode(request.files[form.foto.data].read()).decode('ascii'))
+            produto.foto_base64 = b64encode(request.files[form.foto.name].read()).decode('ascii')
             produto.foto_mime = request.files[form.foto.name].mimetype
         else:
             produto.possui_foto = False
@@ -35,11 +37,10 @@ def add():
             produto.foto_mime = None
 
         categoria = Categoria.get_by_id(form.categoria.data)
-
-        if categoria is not None:
+        if categoria is None:
             flash('Categoria inexistente!', category='danger')
             return redirect(url_for('produto.add'))
-        produto.category = categoria
+        produto.categoria = categoria
 
         db.session.add(produto)
         db.session.commit()
@@ -48,6 +49,13 @@ def add():
 
     return render_template('produto/add_edit.jinja2', form=form, title="Adicionar novo Produto")
 
+@bp.route('/lista', methods=['GET', 'POST'])
+@bp.route('/', methods=['GET', 'POST'])
+def lista():
+    sentenca = db.select(Produto).order_by(Produto.nome)
+    rset = db.session.execute(sentenca).scalars()
+
+    return render_template('produto/lista.jinja2', title="Lista de produtos", rset=rset)
 
 @bp.route('/imagem/<uuid:id_produto>', methods=['GET'])
 def imagem(id_produto):
