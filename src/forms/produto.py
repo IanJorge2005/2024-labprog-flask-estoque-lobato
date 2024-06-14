@@ -24,4 +24,6 @@ class ProdutoForm(FlaskForm):
 
     categoria = SelectField(label="Categoria do Produto", validators=[InputRequired(message="Selecione uma categoria")])
 
+    removerfoto = BooleanField(label="Remover a foto atual?", default=False)
+
     submit = SubmitField()
