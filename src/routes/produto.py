@@ -1,11 +1,8 @@
+import uuid
 from base64 import b64encode
-
-from pprint import pprint
-
 from flask import Blueprint, flash, redirect, url_for, render_template, request, Response, abort
 from flask_login import login_required
 from werkzeug.exceptions import NotFound
-
 from src.forms.produto import ProdutoForm
 from src.models.categoria import Categoria
 from src.models.produto import Produto
@@ -14,7 +11,7 @@ from src.modules import db
 bp = Blueprint('produto', __name__, url_prefix='/produto')
 
 
-@bp.route('/add', methods=['GET','POST'])
+@bp.route('/add', methods=['GET', 'POST'])
 @login_required
 def add():
     if Categoria.is_empty():
@@ -27,7 +24,7 @@ def add():
     form.categoria.choices = [(str(i.id), i.nome) for i in categorias]
 
     if form.validate_on_submit():
-        produto = Produto(nome = form.nome.data, preco = form.preco.data, ativo = form.ativo.data, estoque = form.estoque.data)
+        produto = Produto(nome=form.nome.data, preco=form.preco.data, ativo=form.ativo.data, estoque=form.estoque.data)
         if form.foto.data:
             produto.possui_foto = True
             produto.foto_base64 = b64encode(request.files[form.foto.name].read()).decode('ascii')
@@ -49,6 +46,7 @@ def add():
         return redirect(url_for('index'))
 
     return render_template('produto/add.jinja2', form=form, title="Adicionar novo Produto")
+
 
 @bp.route('/edit/<uuid:produto_id>', methods=['GET', 'POST'])
 def edit(produto_id):
@@ -89,6 +87,7 @@ def edit(produto_id):
     form.categoria.process_data(str(produto.categoria_id))
     return render_template('produto/edit.jinja2', form=form, title="Alterar um produto", produto=produto)
 
+
 @bp.route('/delete/<uuid:produto_id>', methods=["GET"])
 @login_required
 def delete(produto_id):
@@ -103,12 +102,35 @@ def delete(produto_id):
 
     return redirect(url_for('produto.lista'))
 
+
 @bp.route('/lista', methods=['GET', 'POST'])
 @bp.route('/', methods=['GET', 'POST'])
 def lista():
     page = request.args.get('page', type=int, default=1)
     pp = request.args.get('pp', type=int, default=25)
+    q = request.args.get('q', type=str, default="")
+    categoria_id = request.args.get('categoria_id', type=str, default="")
+    preco_min = request.args.get('preco_min', type=float, default=None)
+    preco_max = request.args.get('preco_max', type=float, default=None)
+
     sentenca = db.select(Produto).order_by(Produto.nome)
+
+    if q != "":
+        sentenca = sentenca.filter(Produto.nome.ilike(f"%{q}%"))
+
+    if categoria_id:
+        try:
+            categoria_uuid = uuid.UUID(categoria_id)
+            sentenca = sentenca.filter(Produto.categoria_id == categoria_uuid)
+        except ValueError:
+            flash("Categoria inválida!", category='danger')
+            return redirect(url_for('produto.lista'))
+
+    if preco_min is not None:
+        sentenca = sentenca.filter(Produto.preco >= preco_min)
+
+    if preco_max is not None:
+        sentenca = sentenca.filter(Produto.preco <= preco_max)
 
     try:
         rset = db.paginate(sentenca, page=page, per_page=pp, error_out=True)
@@ -117,7 +139,11 @@ def lista():
         page = 1
         rset = db.paginate(sentenca, page=page, per_page=pp, error_out=False)
 
-    return render_template('produto/lista.jinja2', title="Lista de produtos", rset=rset, page=page, pp=pp)
+    categorias = db.session.execute(db.select(Categoria).order_by(Categoria.nome)).scalars()
+
+    return render_template('produto/lista.jinja2', title="Lista de produtos", rset=rset, page=page, pp=pp, q=q,
+                           categorias=categorias, categoria_id=categoria_id, preco_min=preco_min, preco_max=preco_max)
+
 
 @bp.route('/imagem/<uuid:id_produto>', methods=['GET'])
 def imagem(id_produto):
@@ -127,6 +153,7 @@ def imagem(id_produto):
     conteudo, tipo = produto.imagem
     return Response(conteudo, mimetype=tipo)
 
+
 @bp.route('/thumbnail/<uuid:id_produto>/<int:size>', methods=['GET'])
 @bp.route('/thumbnail/<uuid:id_produto>', methods=['GET'])
 def thumbnail(id_produto, size=128):
@@ -135,4 +162,3 @@ def thumbnail(id_produto, size=128):
         return abort(404)
     conteudo, tipo = produto.thumbnail(size)
     return Response(conteudo, mimetype=tipo)
-

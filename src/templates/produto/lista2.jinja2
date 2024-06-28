@@ -12,19 +12,6 @@
                     <div class="hstack gap-3">
                         {{ linhas_por_pagina(pp) }}
                         {{ nome_parcial(q) }}
-
-                        <!-- Filtro por Categoria -->
-                        <select name="categoria_id" class="form-select">
-                            <option value="">Todas as Categorias</option>
-                            {% for cat in categorias %}
-                                <option value="{{ cat.id }}" {% if cat.id|string == categoria_id %}selected{% endif %}>{{ cat.nome }}</option>
-                            {% endfor %}
-                        </select>
-
-                        <!-- Filtro por Preço -->
-                        <input type="number" name="preco_min" class="form-control" placeholder="Preço Mín" value="{{ preco_min }}">
-                        <input type="number" name="preco_max" class="form-control" placeholder="Preço Máx" value="{{ preco_max }}">
-
                         <button type="submit" class="btn btn-secondary">Filtrar</button>
                     </div>
                 </div>
@@ -71,7 +58,7 @@
             </div>
 
             <div class="float-end">
-            {{ render_pagination(rset, 'produto.lista', align='right', size='sm', args={'pp': pp, 'q': q, 'categoria_id': categoria_id, 'preco_min': preco_min, 'preco_max': preco_max}) }}
+            {{ render_pagination(rset, 'produto.lista', align='right', size='sm',args={'pp': pp, 'q': q}) }}
             </div>
         </div>
     </div>
